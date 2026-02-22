@@ -33,6 +33,28 @@ const initDB = async () => {
       );
 
     `);
+// student table
+    await pool.query(`
+
+      CREATE TABLE IF NOT EXISTS students (
+
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+        user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+
+        full_name VARCHAR(255) NOT NULL,
+
+        roll_no VARCHAR(50) UNIQUE NOT NULL,
+
+        branch VARCHAR(50),
+
+        semester INT,
+
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+      );
+
+    `);
 
 
     console.log("Database initialized successfully");
