@@ -56,6 +56,18 @@ const initDB = async () => {
 
     `);
 
+    //Teachers table
+    await pool.query(`
+      CREATE TABLE IF NOT  EXISTS Teacher(
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        full_name VARCHAR(255) NOT NULL,
+        employee_id VARCHAR(50) UNIQUE NOT NULL,
+        department VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
 
     console.log("Database initialized successfully");
 
