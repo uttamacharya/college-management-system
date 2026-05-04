@@ -3,7 +3,13 @@ import jwt from "jsonwebtoken";
 import { appDB } from "../config/db.js";
 
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    college_id: string;
+  };
 }
 
 export const isAuth = async (
@@ -21,9 +27,9 @@ export const isAuth = async (
       return;
     }
 
-    const token = authHeader.split(" ")[1];
+    const accesToken = authHeader.split(" ")[1];
 
-    if (!token) {
+    if (!accesToken) {
       res.status(401).json({
         message: "Invalid token format",
       });
@@ -32,7 +38,7 @@ export const isAuth = async (
 
     //verify token
     const decoded = jwt.verify(
-      token,
+      accesToken,
       process.env.JWT_SECRET as string
     ) as { id: string };
 
@@ -45,7 +51,7 @@ export const isAuth = async (
 
     // DB से fresh user fetch करो
     const result = await appDB.query(
-      "SELECT id, email, name, role FROM users WHERE id = $1",
+      "SELECT id, email, name, role,college_id FROM users WHERE id = $1",
       [decoded.id]
     );
 

@@ -2,16 +2,14 @@ import { appDB } from "../config/db.js";
 import { collegeDB } from "../config/collegeDB.js";
 
 
-// =========================
-// 🔥 1. STUDENT SYNC
-// =========================
+// STUDENT SYNC
 export const syncStudentData = async (collegeId: string, userId: string) => {
   const client = await appDB.connect();
 
   try {
     await client.query("BEGIN");
 
-    // ✅ only student
+    //  only student
     const collegeRes = await collegeDB.query(
       "SELECT * FROM college_users WHERE college_id = $1 AND role = 'student'",
       [collegeId]
@@ -22,7 +20,7 @@ export const syncStudentData = async (collegeId: string, userId: string) => {
       throw new Error("Student not found in college DB");
     }
 
-    // ✅ get stream from separate table
+    //get stream from separate table
     const streamRes = await collegeDB.query(
       "SELECT stream FROM college_students WHERE college_id = $1",
       [collegeId]
@@ -30,7 +28,7 @@ export const syncStudentData = async (collegeId: string, userId: string) => {
 
     const stream = streamRes.rows[0]?.stream || "UNKNOWN";
 
-    // ✅ insert/update
+    //insert/update
     const result = await client.query(
       `INSERT INTO students (user_id, college_id, name, email, stream)
        VALUES ($1, $2, $3, $4, $5)
@@ -55,9 +53,8 @@ export const syncStudentData = async (collegeId: string, userId: string) => {
 };
 
 
-// =========================
-// 🔥 2. MARKS SYNC
-// =========================
+//MARKS SYNC
+
 export const syncMarksData = async (studentId: string, collegeId: string) => {
   const client = await appDB.connect();
 
@@ -73,7 +70,7 @@ export const syncMarksData = async (studentId: string, collegeId: string) => {
 
     const marksData = collegeMarks.rows;
 
-    // ✅ get stream once
+    //get stream once
     const studentRes = await client.query(
       "SELECT stream FROM students WHERE id = $1",
       [studentId]
@@ -83,9 +80,8 @@ export const syncMarksData = async (studentId: string, collegeId: string) => {
 
     for (const item of marksData) {
 
-      // =========================
-      // 🔹 SUBJECT INSERT SAFE
-      // =========================
+      // SUBJECT INSERT SAFE
+
       let subjectId;
 
       const subjectInsert = await client.query(
@@ -108,16 +104,17 @@ export const syncMarksData = async (studentId: string, collegeId: string) => {
         subjectId = existing.rows[0].id;
       }
 
-      // =========================
-      // 🔹 MARKS INSERT SAFE
-      // =========================
+
+      // MARKS INSERT SAFE
+
       await client.query(
-        `INSERT INTO marks (student_id, subject_id, marks)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (student_id, subject_id)
-         DO UPDATE SET 
-           marks = EXCLUDED.marks`,
-        [studentId, subjectId, item.marks]
+        `INSERT INTO marks (student_id, subject_id, marks,      max_marks)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (student_id, subject_id, attempt)
+          DO UPDATE SET 
+          marks = EXCLUDED.marks,
+          max_marks = EXCLUDED.max_marks`,
+        [studentId, subjectId, item.marks, 10]
       );
     }
 
@@ -132,9 +129,8 @@ export const syncMarksData = async (studentId: string, collegeId: string) => {
 };
 
 
-// =========================
-// 🔥 3. GET FULL PROFILE
-// =========================
+
+// GET FULL PROFILE
 export const getFullStudentData = async (collegeId: string) => {
 
   const result = await appDB.query(

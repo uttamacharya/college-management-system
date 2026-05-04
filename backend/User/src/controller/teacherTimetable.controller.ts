@@ -2,6 +2,7 @@ import type { Response } from "express";
 import type { AuthRequest } from "../config/auth.types.js";
 
 import {
+  syncTeacherData,
   createTimetable,
   getTeacherTimetable,
   updateTimetable,
@@ -31,7 +32,9 @@ export const createTeacherTimetable = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const teacherId = await getTeacherId(userId);
+    const teacher = await syncTeacherData(userId);
+
+    const teacherId = teacher.id
 
     if (!teacherId) {
       return res.status(404).json({ message: "Teacher not found" });
@@ -63,7 +66,8 @@ export const getTimetable = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const teacherId = await getTeacherId(userId);
+    const teacher = await syncTeacherData(userId);
+    const teacherId = teacher.id
 
     if (!teacherId) {
       return res.status(404).json({ message: "Teacher not found" });
@@ -93,7 +97,8 @@ export const updateTeacherTimetable = async (
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const teacherId = await getTeacherId(userId);
+    const teacher = await syncTeacherData(userId);
+    const teacherId = teacher.id
 
     if (!teacherId) {
       return res.status(404).json({ message: "Teacher not found" });

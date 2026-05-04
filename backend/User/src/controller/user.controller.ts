@@ -3,7 +3,9 @@ import bcrypt from "bcrypt";
 import { findOrCreateUser } from "../services/auth.service.js";
 import { appDB } from "../config/db.js";
 import { generateToken } from "../config/generateToken.js";
-
+import jwt from 'jsonwebtoken'
+import { redisClient } from "../config/redis.js";
+import {randomUUID} from "crypto"
 //import services 
 import {
   sendOtpService,
@@ -40,6 +42,13 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
+    if (!password) {
+      return res.status(400).json({
+        message: "Password is required",
+      });
+    }
+
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
@@ -48,12 +57,36 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const token = generateToken(user);
+    const deviceId= randomUUID();
+
+    const { accessToken, refreshToken } = generateToken(user, deviceId);
+
+    // cookies set
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false, //***** */
+      sameSite: "lax",
+    })
+
+    await redisClient.set(
+      `refresh:${user.id}:${deviceId}`,
+      refreshToken,
+      { EX: 60 * 60 * 24 * 15 } // 15 days
+    );
+
+
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
 
     res.json({
       message: "Login successful",
-      user,
-      token,
+      user: safeUser,
+      accessToken,
+      deviceId
     });
 
   } catch (error: any) {
@@ -64,8 +97,76 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) {
+      return res.status(401).json({
+        message: "No refresh token"
+      })
+    }
+    const decoded: any = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string,
+    );
+    const key= `refresh:${decoded.id}:${decoded.deviceId}`
+    const storedToken = await redisClient.get(key);
 
-// SET PASSWORD
+    if (!storedToken || storedToken !== token) {
+      return res.status(401).json({ message: "Invalid session" });
+    }
+
+    const userRes = await appDB.query(
+      "SELECT id, college_id, role FROM users WHERE id=$1",
+      [decoded.id]
+    );
+    const user = userRes.rows[0];
+
+
+    const accessToken = jwt.sign(
+      {
+        id: user.id,
+        college_id: user.college_id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "15m" }
+    );
+    res.json({
+      accessToken
+    })
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid refresh token" })
+  }
+}
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.refreshToken;
+
+    if (token) {
+      const decoded: any = jwt.verify(
+        token,
+        process.env.JWT_REFRESH_SECRET as string
+      );
+
+      // delete from redis
+      await redisClient.del(`refresh:${decoded.id}`);
+    }
+
+    // cookie clear
+    res.clearCookie("refreshToken");
+
+    res.json({
+      message: "Logged out successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Logout error" });
+  }
+};
+
+
 export const setPassword = async (req: Request, res: Response) => {
   try {
     const { userId, password } = req.body;
@@ -76,6 +177,28 @@ export const setPassword = async (req: Request, res: Response) => {
       });
     }
 
+    //Step 1: check user
+    const result = await appDB.query(
+      "SELECT password FROM users WHERE id = $1",
+      [userId]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    //already password set
+    if (user.password) {
+      return res.status(400).json({
+        message: "Password already set. Use reset-password",
+      });
+    }
+
+    //Step 2: set password (first time only)
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await appDB.query(
@@ -134,20 +257,57 @@ export const verifyOtp = async (req: Request, res: Response) => {
 };
 
 
-// RESET PASSWORD
-export const resetPassword = async (req: Request, res: Response) => {
+export const resetPassword = async (req: any, res: Response) => {
   try {
-    const { email, newPassword } = req.body;
+    const userId = req.user.id; //token se userId lo
+    const { oldPassword, newPassword } = req.body;
 
-    await resetPasswordService(email, newPassword);
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Old password and new password required",
+      });
+    }
+
+    //user fetch
+    const result = await appDB.query(
+      "SELECT password FROM users WHERE id = $1",
+      [userId]
+    );
+
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    //old password check
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Old password is incorrect",
+      });
+    }
+
+    // new password hash
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    //update password
+    await appDB.query(
+      "UPDATE users SET password = $1 WHERE id = $2",
+      [hashedPassword, userId]
+    );
 
     res.json({
-      message: "Password updated",
+      message: "Password updated successfully",
     });
 
   } catch (error: any) {
-    res.status(400).json({
-      message: error.message,
+    console.error("Reset password error:", error.message);
+    res.status(500).json({
+      message: "Internal server error",
     });
   }
 };
