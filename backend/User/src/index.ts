@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
-// import cors from "cors";
+
 
 import authRoutes from './routes/auth.route.js'
 
@@ -11,10 +11,14 @@ import "./config/redis.js";
 // RabbitMQ connect
 import { connectRabbitMQ } from "./config/rabbitMQ.js";
 const app = express();
-
 // middleware
 app.use(express.json());
 // app.use(cors());
+
+// test route
+app.get("/api/test", (req, res) => {
+  res.json({ message: "API is working" });
+});
 
 //  routes
 app.use("/api/auth", authRoutes);

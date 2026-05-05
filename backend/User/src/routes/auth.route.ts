@@ -38,5 +38,9 @@ router.post("/reset-password", resetPassword);
 
 // protected route
 router.get("/me", isAuth, myProfile);
+// test route
+router.get("/test", (req, res) => {
+  res.json({ message: "Auth route working" });
+});
 
 export default router;

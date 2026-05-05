@@ -10,7 +10,7 @@ if (!process.env.APP_DATABASE_URL) {
 
 export const appDB = new Pool({
   connectionString: process.env.APP_DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: false,
 });
 
 appDB.on("connect", () => {
