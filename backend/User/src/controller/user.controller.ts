@@ -59,6 +59,8 @@ export const login = async (req: Request, res: Response) => {
 
     const deviceId= randomUUID();
 
+    console.log(user);
+
     const { accessToken, refreshToken } = generateToken(user, deviceId);
 
     // cookies set

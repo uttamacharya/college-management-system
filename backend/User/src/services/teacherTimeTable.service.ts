@@ -119,7 +119,7 @@ export const updateTimetable = async (
       day,
       start_time,
       end_time,
-      subjectId || null,
+      subject || null,
       room || null,
       timetableId,
       teacherId,
