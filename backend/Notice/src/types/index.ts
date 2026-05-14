@@ -42,7 +42,7 @@ export interface Notice {
   description: string | null;
   image_url: string | null;
   image_public_id: string | null;
-  target_years: number[];
+  target_batches: number[];
   target_branches: string[];
   importance: ImportanceLevel;
   expires_at: Date | null;
@@ -66,7 +66,7 @@ export interface CreateNoticeInput {
   description?: string;
   image_url?: string;
   image_public_id?: string;
-  target_years?: number[];
+  target_batches?: number[];
   target_branches?: string[];
   target_student_ids?: string[];
   importance?: ImportanceLevel;
@@ -79,7 +79,7 @@ export interface UpdateNoticeInput {
   image_url?: string;
   image_public_id?: string;
   remove_image?: boolean;
-  target_years?: number[];
+  target_batches?: number[];
   target_branches?: string[];
   target_student_ids?: string[];
   importance?: ImportanceLevel;

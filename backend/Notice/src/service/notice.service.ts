@@ -99,7 +99,7 @@ export const createNoticeService = async (
         description,
         image_url,
         image_public_id,
-        target_years,
+        target_batches,
         target_branches,
         importance,
         expires_at
@@ -118,7 +118,7 @@ export const createNoticeService = async (
       input.description || null,
       image_url,
       image_public_id,
-      input.target_years || [],
+      input.target_batches || [],
       input.target_branches || [],
       input.importance || "medium",
       input.expires_at || null,
@@ -203,7 +203,6 @@ export const getStudentNoticesService = async (
   }
 
   // ─── Query───────
-
   const result = await appDB.query<Notice>(
 
     `
@@ -266,6 +265,15 @@ export const getStudentNoticesService = async (
 
         nts.student_id IS NULL
       )
+
+      AND
+     (
+       sns.is_hidden = false
+
+       OR
+
+       sns.is_hidden IS NULL
+     )
 
       ORDER BY ${orderBy}
 
@@ -331,8 +339,7 @@ export const markNoticeAsReadService = async (
       DO UPDATE SET
 
         is_read = true,
-        read_at = NOW()
-
+        read_at = NOW(),
       WHERE
         student_notice_status.is_read = false
     `,
@@ -394,7 +401,6 @@ export const toggleNoticeStarService = async (
 
         SET
           is_starred = $1,
-
           starred_at =
             CASE
               WHEN $1 = true
@@ -451,6 +457,16 @@ export const toggleNoticeStarService = async (
 
     [noticeId, studentId]
   );
+
+  const keys =
+    await redisClient.keys(
+      `student-notices:${studentId}:*`
+    );
+
+  if (keys.length > 0) {
+
+    await redisClient.del(keys);
+  }
   return true;
 };
 
@@ -687,7 +703,7 @@ export const updateNoticeService = async (
 
           image_public_id,
 
-          input.target_years ?? null,
+          input.target_batches ?? null,
 
           input.target_branches ?? null,
 
@@ -811,5 +827,168 @@ export const updateNoticeService = async (
     // Release Client 
 
     client.release();
+  }
+};
+
+
+// ─── Delete Notice 
+
+export const deleteNoticeService = async (
+  teacherId: string,
+  noticeId: string
+): Promise<void> => {
+
+  const client =
+    await appDB.connect();
+
+  try {
+
+    // ─── Start Transaction
+
+    await client.query(
+      "BEGIN"
+    );
+
+    // ─── Find Notice──────
+
+    const existingNotice =
+      await client.query<Notice>(
+
+        `
+          SELECT *
+
+          FROM notices
+
+          WHERE id = $1
+          AND teacher_id = $2
+        `,
+
+        [noticeId, teacherId]
+      );
+
+    const notice =
+      existingNotice.rows[0];
+
+    if (!notice) {
+
+      throw new Error(
+        "Notice not found"
+      );
+    }
+
+    // ─── Soft Delete──────
+
+    await client.query(
+
+      `
+        UPDATE notices
+
+        SET
+          is_active = false,
+          updated_at = NOW()
+
+        WHERE id = $1
+      `,
+
+      [noticeId]
+    );
+
+    // ─── Commit ───
+
+    await client.query(
+      "COMMIT"
+    );
+
+    // ─── Clear Teacher Cache ─────────────────────────────────────────────────
+
+    const teacherKeys =
+      await redisClient.keys(
+        `teacher-notices:${teacherId}:*`
+      );
+
+    if (teacherKeys.length > 0) {
+
+      await redisClient.del(
+        teacherKeys
+      );
+    }
+
+    // ─── Clear Student Cache ─────────────────────────────────────────────────
+
+    const studentKeys =
+      await redisClient.keys(
+        `student-notices:*`
+      );
+
+    if (studentKeys.length > 0) {
+
+      await redisClient.del(
+        studentKeys
+      );
+    }
+
+  } catch (error) {
+
+    // ─── Rollback 
+
+    await client.query(
+      "ROLLBACK"
+    );
+
+    throw error;
+
+  } finally {
+
+    client.release();
+  }
+};
+
+
+// ─── Hide Notice For Student ─────────────────────────────────────────────────
+
+export const hideNoticeForStudentService = async (
+  noticeId: string,
+  studentId: string
+): Promise<void> => {
+
+  await appDB.query(
+
+    `
+      INSERT INTO student_notice_status (
+
+        notice_id,
+        student_id,
+        is_hidden
+
+      )
+
+      VALUES (
+
+        $1,
+        $2,
+        true
+
+      )
+
+      ON CONFLICT (notice_id, student_id)
+
+      DO UPDATE SET
+
+        is_hidden = true
+    `,
+
+    [noticeId, studentId]
+  );
+
+  // ─── Clear Cache 
+
+  const keys =
+    await redisClient.keys(
+      `student-notices:${studentId}:*`
+    );
+
+  if (keys.length > 0) {
+
+    await redisClient.del(keys);
   }
 };

@@ -2,7 +2,7 @@ import type { Response } from "express";
 
 import type { AuthenticatedRequest, UpdateNoticeInput } from "../types/index.js";
 
-import { createNoticeService, getStudentByUserId, getStudentNoticesService, getTeacherByUserId, getTeacherNoticesService, markNoticeAsReadService, toggleNoticeStarService, updateNoticeService } from "../service/notice.service.js";
+import { createNoticeService, deleteNoticeService, getStudentByUserId, getStudentNoticesService, getTeacherByUserId, getTeacherNoticesService, hideNoticeForStudentService, markNoticeAsReadService, toggleNoticeStarService, updateNoticeService } from "../service/notice.service.js";
 
 
 import { parseStudentCollegeId }
@@ -406,25 +406,19 @@ export const updateNotice = async (
       description:
         req.body.description,
 
-      target_years:
-        req.body.target_years
-          ? JSON.parse(
-              req.body.target_years
-            )
+      target_batches:
+        req.body.target_batches
+          ? req.body.target_batches
           : undefined,
 
       target_branches:
         req.body.target_branches
-          ? JSON.parse(
-              req.body.target_branches
-            )
+          ? req.body.target_branches
           : undefined,
 
       target_student_ids:
         req.body.target_student_ids
-          ? JSON.parse(
-              req.body.target_student_ids
-            )
+          ? req.body.target_student_ids
           : undefined,
 
       importance:
@@ -465,6 +459,171 @@ export const updateNotice = async (
 
       notice:
         updatedNotice,
+    });
+
+  } catch (error: any) {
+
+    console.log(error);
+
+    res.status(500).json({
+
+      success: false,
+
+      message:
+        error.message ||
+        "Server error",
+    });
+  }
+};
+
+
+// ─── Delete Notice
+
+export const deleteNotice = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+
+  try {
+
+    const userId =
+      req.user?.id;
+
+    if (!userId) {
+
+      res.status(401).json({
+
+        success: false,
+
+        message: "Unauthorized",
+      });
+
+      return;
+    }
+
+    // ─── Notice Id
+
+    const noticeId =
+      req.params.noticeId as string;
+
+    // ─── Find Teacher
+
+    const teacher =
+      await getTeacherByUserId(
+        userId
+      );
+
+    if (!teacher) {
+
+      res.status(404).json({
+
+        success: false,
+
+        message: "Teacher not found",
+      });
+
+      return;
+    }
+
+    // ─── Delete Notice 
+
+    await deleteNoticeService(
+
+      teacher.id,
+
+      noticeId
+    );
+
+    // ─── Response─
+
+    res.status(200).json({
+
+      success: true,
+
+      message:
+        "Notice deleted successfully",
+    });
+
+  } catch (error: any) {
+
+    console.log(error);
+
+    res.status(500).json({
+
+      success: false,
+
+      message:
+        error.message ||
+        "Server error",
+    });
+  }
+};
+
+// ─── Hide Notice For Student ─────────────────────────────────────────────────
+
+export const hideNoticeForStudent = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+
+  try {
+
+    const userId =
+      req.user?.id;
+
+    if (!userId) {
+
+      res.status(401).json({
+
+        success: false,
+
+        message: "Unauthorized",
+      });
+
+      return;
+    }
+
+    // ─── Notice Id ───────────────────────────────────────────────────────────
+
+    const noticeId =
+      req.params.noticeId as string;
+
+    // ─── Find Student ────────────────────────────────────────────────────────
+
+    const student =
+      await getStudentByUserId(
+        userId
+      );
+
+    if (!student) {
+
+      res.status(404).json({
+
+        success: false,
+
+        message: "Student not found",
+      });
+
+      return;
+    }
+
+    // ─── Hide Notice ─────────────────────────────────────────────────────────
+
+    await hideNoticeForStudentService(
+
+      noticeId,
+
+      student.id
+    );
+
+    // ─── Response ────────────────────────────────────────────────────────────
+
+    res.status(200).json({
+
+      success: true,
+
+      message:
+        "Notice removed successfully",
     });
 
   } catch (error: any) {

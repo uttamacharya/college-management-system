@@ -1,6 +1,6 @@
 import express from "express";
 
-import { createNotice, getStudentNotices, getTeacherNotices, markNoticeAsRead, toggleNoticeStar, updateNotice } from "../controller/notice.controller.js";
+import { createNotice, deleteNotice, getStudentNotices, getTeacherNotices, hideNoticeForStudent, markNoticeAsRead, toggleNoticeStar, updateNotice } from "../controller/notice.controller.js";
 
 import { isAuth } from "../middleware/isAuth.js";
 
@@ -34,7 +34,7 @@ router.post(
   markNoticeAsRead
 );
 
-// ─── Toggle Notice Star ──────────────────────────────────────────────────────
+// ─── Toggle Notice Star ────────────
 
 router.post(
   "/star/:noticeId",
@@ -42,7 +42,7 @@ router.post(
   toggleNoticeStar
 );
 
-// ─── Get Teacher Notices ─────────────────────────────────────────────────────
+// ─── Get Teacher Notices ───────────
 
 router.get(
   "/teacher",
@@ -51,7 +51,7 @@ router.get(
   getTeacherNotices
 );
 
-// ─── Update Notice ───────────────────────────────────────────────────────────
+// ─── Update Notice
 
 router.patch(
   "/update/:noticeId",
@@ -59,6 +59,22 @@ router.patch(
   isTeacher,
   upload.single("image"),
   updateNotice
+);
+
+router.delete(
+  "/delete/:noticeId",
+  isAuth,
+  isTeacher,
+  deleteNotice
+);
+
+// ─── Hide Notice For Student ─────────────────────────────────────────────────
+
+router.patch(
+  "/hide/:noticeId",
+  isAuth,
+  // isStudent,
+  hideNoticeForStudent
 );
 
 export default router;
