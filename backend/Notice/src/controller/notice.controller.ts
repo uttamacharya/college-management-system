@@ -583,7 +583,7 @@ export const hideNoticeForStudent = async (
       return;
     }
 
-    // ─── Notice Id ───────────────────────────────────────────────────────────
+    // ─── Notice Id ──
 
     const noticeId =
       req.params.noticeId as string;
@@ -607,7 +607,7 @@ export const hideNoticeForStudent = async (
       return;
     }
 
-    // ─── Hide Notice ─────────────────────────────────────────────────────────
+    // ─── Hide Notice 
 
     await hideNoticeForStudentService(
 
@@ -616,7 +616,7 @@ export const hideNoticeForStudent = async (
       student.id
     );
 
-    // ─── Response ────────────────────────────────────────────────────────────
+    // ─── Response 
 
     res.status(200).json({
 

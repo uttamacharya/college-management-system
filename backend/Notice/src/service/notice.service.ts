@@ -12,7 +12,7 @@ import type {
 
 import { deleteNoticeImage, uploadNoticeImage } from "../utils/cloudinary.utils.js";
 
-// ─── Get Teacher By User ID ──────────
+// Get Teacher By User ID 
 
 export const getTeacherByUserId = async (
   userId: string
@@ -35,7 +35,7 @@ export const getTeacherByUserId = async (
 
 
 
-// ─── Get Student By User ID ──────────
+//Get Student By User ID
 
 export const getStudentByUserId = async (
   userId: string
@@ -55,7 +55,7 @@ export const getStudentByUserId = async (
   return result.rows[0] || null;
 };
 
-// ─── Create Notice 
+//Create Notice 
 
 export const createNoticeService = async (
   teacherId: string,

@@ -258,6 +258,40 @@ export const verifyOtp = async (req: Request, res: Response) => {
   }
 };
 
+// forgot reset Password
+export const forgotResetPassword = async (
+  req: Request,
+  res: Response
+) => {
+
+  try {
+
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        message: "Email and new password required",
+      });
+    }
+
+    await resetPasswordService(
+      email,
+      newPassword
+    );
+
+    res.json({
+      message: "Password reset successful",
+    });
+
+  } catch (error: any) {
+
+    res.status(400).json({
+      message: error.message,
+    });
+
+  }
+};
+
 
 export const resetPassword = async (req: any, res: Response) => {
   try {

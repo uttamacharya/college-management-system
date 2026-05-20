@@ -25,6 +25,12 @@ export const verifyOtpService = async (email: string, otp: string) => {
   }
 
   await redisClient.del(`otp:${email}`);
+
+  await redisClient.set(
+    `reset_allowed:${email}`,
+    "true",
+    { EX: 600 }
+  );
 };
 
 // Reset password
@@ -32,10 +38,23 @@ export const resetPasswordService = async (
   email: string,
   newPassword: string
 ) => {
+
+  const allowed = await redisClient.get(
+    `reset_allowed:${email}`
+  );
+
+  if (!allowed) {
+    throw new Error(
+      "OTP verification required"
+    );
+  }
   const hashed = await bcrypt.hash(newPassword, 10);
 
   await appDB.query(
     "UPDATE users SET password = $1 WHERE email = $2",
     [hashed, email]
+  );
+  await redisClient.del(
+    `reset_allowed:${email}`
   );
 };

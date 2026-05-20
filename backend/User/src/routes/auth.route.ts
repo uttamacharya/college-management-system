@@ -9,6 +9,7 @@ import {
   resetPassword,
   myProfile,
   refreshAccessToken,
+  forgotResetPassword,
 } from "../controller/user.controller.js";
 
 // middleware
@@ -33,6 +34,11 @@ router.post("/forgot-password", forgotPassword);
 
 // 2. verify OTP
 router.post("/verify-otp", verifyOtp);
+
+// forgot reset password
+router.post(
+  "/forgot-reset-password", forgotResetPassword
+);
 
 // 3. reset password
 router.post("/reset-password", isAuth, resetPassword);
