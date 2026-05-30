@@ -5,7 +5,7 @@ export const findOrCreateUser = async (collegeId: string) => {
   try {
     //Local DB check
     const local = await appDB.query(
-      "SELECT id, email, name, role, password FROM users WHERE college_id = $1",
+      "SELECT id, email, name, role, password, college_id FROM users WHERE college_id = $1",
       [collegeId]
     );
 
@@ -28,7 +28,7 @@ export const findOrCreateUser = async (collegeId: string) => {
         `INSERT INTO users (email, name, college_id, role, is_verified)
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (college_id) DO NOTHING
-         RETURNING id, email, name, role, password`,
+         RETURNING id, email, name, college_id, role, password`,
         [
           collegeUser.email,
           collegeUser.name,
@@ -41,7 +41,7 @@ export const findOrCreateUser = async (collegeId: string) => {
       //Agar insert nahi hua (already exists)
       if (insert.rows.length === 0) {
         const retry = await appDB.query(
-          "SELECT id, email, name, role, password FROM users WHERE college_id = $1",
+          "SELECT id, email, name, college_id, role, password FROM users WHERE college_id = $1",
           [collegeId]
         );
         user = retry.rows[0];

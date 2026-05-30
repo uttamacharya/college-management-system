@@ -8,6 +8,8 @@ import {
   verifyOtp,
   resetPassword,
   myProfile,
+  refreshAccessToken,
+  forgotResetPassword,
 } from "../controller/user.controller.js";
 
 // middleware
@@ -20,6 +22,8 @@ const router = express.Router();
 // login (collegeId + password)
 router.post("/login", login);
 
+router.post("/refresh-token", refreshAccessToken);
+
 // first time password set
 router.post("/set-password", setPassword);
 
@@ -31,8 +35,13 @@ router.post("/forgot-password", forgotPassword);
 // 2. verify OTP
 router.post("/verify-otp", verifyOtp);
 
+// forgot reset password
+router.post(
+  "/forgot-reset-password", forgotResetPassword
+);
+
 // 3. reset password
-router.post("/reset-password", resetPassword);
+router.post("/reset-password", isAuth, resetPassword);
 
 // USER ROUTES
 
