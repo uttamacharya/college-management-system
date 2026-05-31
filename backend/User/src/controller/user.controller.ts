@@ -117,7 +117,7 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     if (!storedToken || storedToken !== token) {
       return res.status(401).json({ message: "Invalid session" });
     }
-
+ 
     const userRes = await appDB.query(
       "SELECT id, college_id, role FROM users WHERE id=$1",
       [decoded.id]

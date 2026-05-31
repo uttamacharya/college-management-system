@@ -86,232 +86,26 @@ export const noticeApi = {
 
   // CREATE NOTICE
 
-  createNotice: async (
-    data: any
-  ) => {
-
-    // IMAGE CASE
-
-    // if (data.image) {
-
-    //   const formData =
-    //     new FormData();
-
-    //   formData.append(
-    //     "title",
-    //     data.title
-    //   );
-
-    //   formData.append(
-    //     "description",
-    //     data.description || ""
-    //   );
-
-    //   formData.append(
-    //     "importance",
-    //     data.importance || ""
-    //   );
-
-    //   formData.append(
-    //     "category",
-    //     data.category || ""
-    //   );
-
-    //   formData.append(
-    //     "image",
-    //     data.image
-    //   );
-
-    //   // formData.append(
-    //   //   "target_batches",
-    //   //   JSON.stringify(
-    //   //     data.target_batches || []
-    //   //   )
-    //   // );
-
-    //   data.target_batches?.forEach(
-    //     (batch: string) => {
-
-    //       formData.append(
-    //         "target_batches",
-    //         batch
-    //       );
-    //     }
-    //   );
-
-    //   // formData.append(
-    //   //   "target_branches",
-    //   //   JSON.stringify(
-    //   //     data.target_branches || []
-    //   //   )
-    //   // );
-
-    //   data.target_branches?.forEach(
-    //     (branch: string) => {
-
-    //       formData.append(
-    //         "target_branches",
-    //         branch
-    //       );
-    //     }
-    //   );
-
-    //   // formData.append(
-    //   //   "target_student_ids",
-    //   //   JSON.stringify(
-    //   //     data.target_student_ids || []
-    //   //   )
-    //   // );
-
-    //   data.target_student_ids?.forEach(
-    //     (id: string) => {
-
-    //       formData.append(
-    //         "target_student_ids",
-    //         id
-    //       );
-    //     }
-    //   );
-
-    //   const response =
-    //     await noticeClient.post(
-    //       "/notice/create",
-    //       formData,
-    //       {
-    //         headers: {
-    //           "Content-Type":
-    //             "multipart/form-data",
-    //         },
-    //       }
-    //     );
-
-    //   return response.data;
-    // }
-
-    if (data.image) {
-
-      const formData =
-        new FormData();
-
-      formData.append(
-        "title",
-        data.title
-      );
-
-      formData.append(
-        "description",
-        data.description || ""
-      );
-
-      formData.append(
-        "importance",
-        data.importance || ""
-      );
-
-      formData.append(
-        "category",
-        data.category || ""
-      );
-
-      // IMAGE
-
-      formData.append(
-        "image",
-        data.image
-      );
-
-      // ARRAYS
-
-      data.target_batches?.forEach(
-        (batch: string) => {
-
-          formData.append(
-            "target_batches",
-            batch
-          );
-        }
-      );
-
-      data.target_branches?.forEach(
-        (branch: string) => {
-
-          formData.append(
-            "target_branches",
-            branch
-          );
-        }
-      );
-
-      data.target_student_ids?.forEach(
-        (id: string) => {
-
-          formData.append(
-            "target_student_ids",
-            id
-          );
-        }
-      );
-
-      const response =
-        await noticeClient.post(
-          "/notice/create",
-          formData
-        );
-
-      return response.data;
-    }
-
-    // NORMAL JSON CASE
-
-    const response =
-      await noticeClient.post(
-        "/notice/create",
-        {
-          title: data.title,
-          description:
-            data.description,
-
-          importance:
-            data.importance,
-
-          category:
-            data.category,
-
-          target_batches:
-            data.target_batches,
-
-          target_branches:
-            data.target_branches,
-
-          target_student_ids:
-            data.target_student_ids,
-        }
-      );
-
+  // CREATE NOTICE
+  createNotice: async (formData: FormData) => {
+    const response = await noticeClient.post(
+      "/notice/create",
+      formData
+    );
     return response.data;
   },
 
-
-
   // UPDATE NOTICE
 
+  // UPDATE NOTICE
   updateNotice: async (
     noticeId: string,
-    data: CreateNoticeRequest
+    formData: FormData
   ) => {
-
-    const response =
-      await noticeClient.patch(
-        `/notice/update/${noticeId}`,
-        data,
-        {
-          headers: {
-            "Content-Type":
-              "multipart/form-data",
-          },
-        }
-      );
-
+    const response = await noticeClient.patch(
+      `/notice/update/${noticeId}`,
+      formData
+    );
     return response.data;
   },
 

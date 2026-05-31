@@ -17,9 +17,7 @@ import { CreateNoticeRequest } from "@/types/notice.types";
 
 
 
-// ========================================
 // GET TEACHER NOTICES
-// ========================================
 
 export const useTeacherNotices = (
     page = 1,
@@ -53,9 +51,7 @@ export const useTeacherNotices = (
 };
 
 
-// ========================================
 // CREATE NOTICE
-// ========================================
 
 export const useCreateNotice = () => {
 
@@ -100,9 +96,7 @@ export const useCreateNotice = () => {
 };
 
 
-// ========================================
 // UPDATE NOTICE
-// ========================================
 
 export const useUpdateNotice = () => {
 
@@ -116,7 +110,7 @@ export const useUpdateNotice = () => {
             data,
         }: {
             noticeId: string;
-            data: CreateNoticeRequest
+            data: FormData
         }) => {
 
             return await noticeApi.updateNotice(
@@ -126,12 +120,13 @@ export const useUpdateNotice = () => {
         },
 
         onSuccess: () => {
-
             queryClient.invalidateQueries({
+                queryKey: ["teacher-notices"],
+            });
 
-                queryKey: [
-                    "teacher-notices",
-                ],
+            // 
+            queryClient.invalidateQueries({
+                queryKey: ["student-notices"],
             });
         },
     });
@@ -139,9 +134,7 @@ export const useUpdateNotice = () => {
 
 
 
-// ========================================
 // DELETE NOTICE
-// ========================================
 
 export const useDeleteNotice = () => {
 
@@ -178,7 +171,7 @@ export const useDeleteNotice = () => {
                 queryClient.getQueryData([
                     "teacher-notices",
                     1,
-                    100,
+                    10,
                 ]);
 
             // OPTIMISTIC UPDATE
@@ -188,7 +181,7 @@ export const useDeleteNotice = () => {
                 [
                     "teacher-notices",
                     1,
-                    100,
+                    10,
                 ],
 
                 (old: any) => {
@@ -220,7 +213,7 @@ export const useDeleteNotice = () => {
                 [
                     "teacher-notices",
                     1,
-                    100,
+                    10,
                 ],
 
                 context?.previousNotices
@@ -241,39 +234,35 @@ export const useDeleteNotice = () => {
 
 
 
-// ========================================
 // GET TEACHER TIMETABLE
-// ========================================
 
 export const useTeacherTimetable =
-  () => {
+    () => {
 
-    return useQuery({
+        return useQuery({
 
-      queryKey: [
-        "teacher-timetable",
-      ],
+            queryKey: [
+                "teacher-timetable",
+            ],
 
-      queryFn: async () => {
+            queryFn: async () => {
 
-        const response =
-          await getTeacherTimetable();
+                const response =
+                    await getTeacherTimetable();
 
-        // console.log(
-        //   "TIMETABLE API =>",
-        //   response
-        // );
+                // console.log(
+                //   "TIMETABLE API =>",
+                //   response
+                // );
 
-        return response;
-      },
-    });
-  };
+                return response;
+            },
+        });
+    };
 
 
 
-// ========================================
 // CREATE TEACHER TIMETABLE
-// ========================================
 
 export const useCreateTeacherTimetable =
     () => {
@@ -300,9 +289,7 @@ export const useCreateTeacherTimetable =
 
 
 
-// ========================================
 // UPDATE TEACHER TIMETABLE
-// ========================================
 
 export const useUpdateTeacherTimetable =
     () => {
@@ -339,9 +326,7 @@ export const useUpdateTeacherTimetable =
 
 
 
-// ========================================
 // TEACHER DASHBOARD
-// ========================================
 
 export const useTeacherDashboard =
     () => {

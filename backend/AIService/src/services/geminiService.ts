@@ -4,17 +4,13 @@ import type { ChatMessage } from './chatMemory.service.js';
 
 dotenv.config();
 
-// =========================================
 // GEMINI INITIALIZATION
-// =========================================
 
 const genAI = new GoogleGenerativeAI(
     process.env.GEMINI_API_KEY as string
 );
 
-// =========================================
 // USER CONTEXT INTERFACE
-// =========================================
 
 interface UserContext {
     id: string;
@@ -31,9 +27,7 @@ interface UserContext {
     }[];
 }
 
-// =========================================
 // GENERATE AI RESPONSE
-// =========================================
 
 export const generateAIResponse = async (
     prompt: string,
@@ -43,16 +37,16 @@ export const generateAIResponse = async (
 
     try {
 
-        // =========================================
+    
         // SAFE USER CONTEXT
         // Only expose required fields to AI
-        // =========================================
+    
 
         const safeContext = userContext;
 
-        // =========================================
+    
         // GEMINI MODEL
-        // =========================================
+    
 
         const model = genAI.getGenerativeModel({
 
@@ -134,9 +128,9 @@ Assistant: give replay with humble
 `
         });
 
-        // =========================================
+    
         // GENERATE RESPONSE
-        // =========================================
+    
 
         const conversationText = chatHistory
             .map((chat) => {
@@ -156,9 +150,9 @@ Assistant: give replay with humble
 
         const text = result.response.text();
 
-        // =========================================
+    
         // EMPTY RESPONSE CHECK
-        // =========================================
+    
 
         if (!text || text.trim().length === 0) {
 
@@ -169,9 +163,9 @@ Assistant: give replay with humble
 
     } catch (error: unknown) {
 
-        // =========================================
+    
         // ERROR HANDLING
-        // =========================================
+    
 
         if (error instanceof Error) {
 

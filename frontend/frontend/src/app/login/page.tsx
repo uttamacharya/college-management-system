@@ -23,7 +23,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-sm text-primary-300">
-          © 2023 CollegeAssist. All rights reserved.
+          © 2026 CollegeAssist. All rights reserved.
         </p>
       </div>
 

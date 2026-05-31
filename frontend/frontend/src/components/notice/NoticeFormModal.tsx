@@ -22,15 +22,9 @@ import {
 
 interface NoticeFormModalProps {
   open: boolean;
-
   onClose: () => void;
-
   notice?: Notice | null;
-
-  onSubmit: (
-    data: CreateNoticeRequest
-  ) => void;
-
+  onSubmit: (data: FormData) => void;
   isLoading?: boolean;
 }
 
@@ -48,23 +42,55 @@ export function NoticeFormModal({
   const [content, setContent] =
     useState("");
 
-  const [category, setCategory] = useState<NoticeCategory>("general");
+  const [category, setCategory] =
+    useState<NoticeCategory>("general");
 
-  const [importance, setImportance] = useState<NoticePriority>("medium");
+  const [importance, setImportance] =
+    useState<NoticePriority>("medium");
 
-  const [image, setImage] = useState<File | null>(null);
+  const [image, setImage] =
+    useState<File | null>(null);
 
-  const [targetBatches, setTargetBatches] = useState<number[]>([]);
+  const [targetBatches, setTargetBatches] =
+    useState<number[]>([]);
 
-  const [targetBranches, setTargetBranches] = useState<string[]>([]);
+  const [targetBranches, setTargetBranches] =
+    useState<string[]>([]);
 
-  const [studentIds, setStudentIds] = useState<string[]>([]);
+  const [studentIds, setStudentIds] =
+    useState<string[]>([]);
 
-  const [studentIdInput, setStudentIdInput] = useState("");
+  const [studentIdInput, setStudentIdInput] =
+    useState("");
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] =
+    useState<string | null>(null);
 
-  // EDIT MODE
+  const [removeImage, setRemoveImage] =
+    useState(false);
+
+  // ─── Reset State On Close ─────────
+
+  useEffect(() => {
+
+    if (!open) {
+
+      setTitle("");
+      setContent("");
+      setCategory("general");
+      setImportance("medium");
+      setImage(null);
+      setImagePreview(null);
+      setTargetBatches([]);
+      setTargetBranches([]);
+      setStudentIds([]);
+      setStudentIdInput("");
+      setRemoveImage(false);
+    }
+
+  }, [open]);
+
+  // ─── Edit Mode — Prefill ──────────
 
   useEffect(() => {
 
@@ -85,79 +111,110 @@ export function NoticeFormModal({
       setImportance(
         notice.importance || "medium"
       );
+
+      setTargetBatches(
+        notice.target_batches || []
+      );
+
+      setTargetBranches(
+        notice.target_branches || []
+      );
+
+      setStudentIds(
+        notice.target_student_ids || []
+      );
+
+      setImagePreview(
+        notice.image_url || null
+      );
     }
 
   }, [notice]);
 
-  // SUBMIT
-  // from yaha se handle submit function ke andar data ko create ya update karne ke liye onSubmit function ko call karna hai, jisme CreateNoticeRequest type ka data pass karna hai. Ye data title, description, category, importance, image, targetBatches, targetBranches, aur target_student_ids ko include karega.
+  // ─── Add Student ID ───────────────
+
   const handleAddStudentId = () => {
 
+    const trimmed =
+      studentIdInput.trim();
+
     if (
-      studentIdInput.trim()
-      &&
-      !studentIds.includes(
-        studentIdInput.trim()
-      )
+      trimmed &&
+      !studentIds.includes(trimmed)
     ) {
 
       setStudentIds([
         ...studentIds,
-        studentIdInput.trim(),
+        trimmed,
       ]);
 
       setStudentIdInput("");
     }
   };
 
+  // ─── Remove Student ID ────────────
+
   const handleRemoveStudentId = (
     id: string
   ) => {
 
     setStudentIds(
-
       studentIds.filter(
         (item) => item !== id
       )
     );
   };
 
-// 
+  // ─── Submit ───────────────────────
+
   const handleSubmit = (
     e: React.FormEvent
   ) => {
 
     e.preventDefault();
 
-    const finalData = {
+    const formData = new FormData();
 
-      title,
+    formData.append("title", title);
 
-      description: content,
+    formData.append("description", content);
 
-      category,
+    formData.append("importance", importance);
 
-      importance,
+    if (targetBatches.length > 0) {
+      formData.append(
+        "target_batches",
+        JSON.stringify(targetBatches)
+      );
+    }
 
-      image,
+    if (targetBranches.length > 0) {
+      formData.append(
+        "target_branches",
+        JSON.stringify(targetBranches)
+      );
+    }
 
-      target_batches:
-        targetBatches,
+    if (studentIds.length > 0) {
+      formData.append(
+        "target_student_ids",
+        JSON.stringify(studentIds)
+      );
+    }
 
-      target_branches:
-        targetBranches,
+    if (image) {
+      formData.append("image", image);
+    }
 
-      target_student_ids:
-        studentIds,
-    };
+    // Edit mode mein image remove karna ho
+    if (removeImage) {
+      formData.append("remove_image", "true");
+    }
 
-    // console.log(
-    //   "FINAL FORM DATA =>",
-    //   finalData
-    // );
-
-    onSubmit(finalData);
+    onSubmit(formData);
   };
+
+  // ─── Render ───────────────────────
 
   return (
 
@@ -166,7 +223,15 @@ export function NoticeFormModal({
       onOpenChange={onClose}
     >
 
-      <DialogContent className=" border-dark-700 bg-dark-900 text-white sm:max-w-2xl max-h-[90vh] overflow-y-auto "
+      <DialogContent
+        className="
+          border-dark-700
+          bg-dark-900
+          text-white
+          sm:max-w-2xl
+          max-h-[90vh]
+          overflow-y-auto
+        "
       >
 
         <DialogHeader>
@@ -203,9 +268,7 @@ export function NoticeFormModal({
           <div>
 
             <label className="mb-2 block text-sm font-medium text-dark-200">
-
               Content
-
             </label>
 
             <textarea
@@ -229,71 +292,22 @@ export function NoticeFormModal({
 
           </div>
 
-          {/* CATEGORY */}
-
-          <div>
-
-            <label className="mb-2 block text-sm font-medium text-dark-200">
-
-              Category
-
-            </label>
-
-            <select
-              value={category}
-              onChange={(e) =>
-                setCategory(
-                  e.target.value as NoticeCategory
-                )
-              }
-              className="
-                w-full rounded-lg
-                border border-dark-600
-                bg-dark-800
-                px-4 py-3
-                text-white
-              "
-            >
-
-              <option value="general">
-                General
-              </option>
-
-              <option value="academic">
-                Academic
-              </option>
-
-              <option value="exam">
-                Exam
-              </option>
-
-              <option value="event">
-                Event
-              </option>
-
-              <option value="holiday">
-                Holiday
-              </option>
-
-            </select>
-
-          </div>
-
           {/* IMPORTANCE */}
 
           <div>
 
             <label className="mb-2 block text-sm font-medium text-dark-200">
-
               Importance
-
             </label>
 
             <select
               value={importance}
               onChange={(e) =>
-                setImportance(e.target.value as NoticePriority)
+                setImportance(
+                  e.target.value as NoticePriority
+                )
               }
+              aria-label="Importance" 
               className="
                 w-full rounded-lg
                 border border-dark-600
@@ -303,21 +317,9 @@ export function NoticeFormModal({
               "
             >
 
-              <option value="low">
-                Low
-              </option>
-
-              <option value="medium">
-                Medium
-              </option>
-
-              <option value="high">
-                High
-              </option>
-
-              <option value="urgent">
-                Urgent
-              </option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
 
             </select>
 
@@ -328,87 +330,69 @@ export function NoticeFormModal({
           <div>
 
             <label className="mb-2 block text-sm font-medium text-dark-200">
-
               Target Batches
-
             </label>
 
             <Input
               placeholder="2021,2022"
-
               value={targetBatches.join(",")}
-
               onChange={(e) =>
                 setTargetBatches(
-
                   e.target.value
                     .split(",")
-
-                    .map((b) =>
-                      Number(b.trim())
-                    )
-
+                    .map((b) => Number(b.trim()))
                     .filter(Boolean)
                 )
               }
             />
-          </div>
 
+          </div>
 
           {/* TARGET BRANCHES */}
 
           <div>
 
             <label className="mb-2 block text-sm font-medium text-dark-200">
-
               Target Branches
-
             </label>
 
             <Input
               placeholder="CSE,ECE"
-
               value={targetBranches.join(",")}
-
               onChange={(e) =>
                 setTargetBranches(
-
                   e.target.value
                     .split(",")
-
-                    .map((b) =>
-                      b.trim()
-                    )
-
+                    .map((b) => b.trim())
                     .filter(Boolean)
                 )
               }
             />
-          </div>
 
+          </div>
 
           {/* STUDENT IDS */}
 
           <div>
 
             <label className="mb-2 block text-sm font-medium text-dark-200">
-
               Student IDs
-
             </label>
 
             <div className="flex gap-2">
 
               <Input
                 placeholder="Enter student ID"
-
                 value={studentIdInput}
-
                 onChange={(e) =>
-                  setStudentIdInput(
-                    e.target.value
-                  )
+                  setStudentIdInput(e.target.value)
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddStudentId();
+                  }
+                }}
               />
 
               <Button
@@ -417,40 +401,45 @@ export function NoticeFormModal({
               >
                 Add
               </Button>
+
             </div>
 
             {/* CHIPS */}
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            {studentIds.length > 0 && (
 
-              {studentIds.map((id) => (
+              <div className="mt-3 flex flex-wrap gap-2">
 
-                <div
-                  key={id}
+                {studentIds.map((id) => (
 
-                  className="
-                     flex items-center gap-2
+                  <div
+                    key={id}
+                    className="
+                      flex items-center gap-2
                       rounded-full
-                        bg-primary-600
-                       px-3 py-1
-                       text-sm text-white
-                       "
-                >
-
-                  {id}
-
-                  <button
-                    type="button"
-
-                    onClick={() =>
-                      handleRemoveStudentId(id)
-                    }
+                      bg-primary-600
+                      px-3 py-1
+                      text-sm text-white
+                    "
                   >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
+
+                    {id}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleRemoveStudentId(id)
+                      }
+                    >
+                      ✕
+                    </button>
+
+                  </div>
+                ))}
+
+              </div>
+            )}
+
           </div>
 
           {/* IMAGE */}
@@ -458,27 +447,64 @@ export function NoticeFormModal({
           <div>
 
             <label className="mb-2 block text-sm font-medium text-dark-200">
-
               Upload Image
-
             </label>
+
+            {/* Existing Image Preview */}
+
+            {imagePreview && !removeImage && (
+
+              <div className="mb-3">
+
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="
+                    mb-2
+                    max-h-[200px]
+                    w-full
+                    rounded-xl
+                    object-cover
+                  "
+                />
+
+                {/* Edit mode mein remove button */}
+
+                {notice?.image_url && (
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRemoveImage(true);
+                      setImagePreview(null);
+                    }}
+                    className="text-sm text-red-400 hover:text-red-300"
+                  >
+                    Remove Image
+                  </button>
+                )}
+
+              </div>
+            )}
 
             <input
               type="file"
               accept="image/*"
               onChange={(e) => {
+
                 const file =
                   e.target.files?.[0] || null;
 
                 setImage(file);
+                setRemoveImage(false);
 
                 if (file) {
-
                   setImagePreview(
                     URL.createObjectURL(file)
                   );
                 }
               }}
+              aria-label="Importance" 
               className="text-sm text-dark-300"
             />
 
