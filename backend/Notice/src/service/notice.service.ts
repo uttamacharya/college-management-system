@@ -55,6 +55,21 @@ export const getStudentByUserId = async (
   return result.rows[0] || null;
 };
 
+const invalidateStudentNoticeCache = async (studentId: string) => {
+  const keys = await redisClient.keys(`student-notices:${studentId}:*`);
+  if (keys.length > 0) await redisClient.del(keys);
+};
+
+const invalidateTeacherNoticeCache = async (teacherId: string) => {
+  const keys = await redisClient.keys(`teacher-notices:${teacherId}:*`);
+  if (keys.length > 0) await redisClient.del(keys);
+};
+
+const invalidateAllStudentNoticeCache = async () => {
+  const keys = await redisClient.keys(`student-notices:*`);
+  if (keys.length > 0) await redisClient.del(keys);
+};
+
 //Create Notice 
 
 export const createNoticeService = async (
@@ -73,6 +88,28 @@ export const createNoticeService = async (
     throw new Error(
       "Notice must contain description or image"
     );
+  }
+
+  // Batch Validation
+  if (input.target_batches?.length) {
+    const currentYear = new Date().getFullYear();
+    const isValid = input.target_batches.every(
+      (batch) => batch >= 2000 && batch <= currentYear + 4
+    );
+    if (!isValid) {
+      throw new Error("Invalid batch year");
+    }
+  }
+
+  // Student ID Validation
+  if (input.target_student_ids?.length) {
+    const result = await appDB.query(
+      `SELECT id FROM students WHERE id = ANY($1)`,
+      [input.target_student_ids]
+    );
+    if (result.rows.length !== input.target_student_ids.length) {
+      throw new Error("One or more student IDs are invalid");
+    }
   }
 
   let image_url: string | null = null;
@@ -339,7 +376,7 @@ export const markNoticeAsReadService = async (
       DO UPDATE SET
 
         is_read = true,
-        read_at = NOW(),
+        read_at = NOW()
       WHERE
         student_notice_status.is_read = false
     `,
@@ -347,15 +384,7 @@ export const markNoticeAsReadService = async (
     [noticeId, studentId]
   );
 
-  const keys =
-    await redisClient.keys(
-      `student-notices:${studentId}:*`
-    );
-
-  if (keys.length > 0) {
-
-    await redisClient.del(keys);
-  }
+  await invalidateStudentNoticeCache(studentId);
 };
 
 
@@ -418,15 +447,7 @@ export const toggleNoticeStarService = async (
         studentId
       ]
     );
-    const keys =
-      await redisClient.keys(
-        `student-notices:${studentId}:*`
-      );
-
-    if (keys.length > 0) {
-
-      await redisClient.del(keys);
-    }
+    await invalidateStudentNoticeCache(studentId);
 
     return newStarValue;
   }
@@ -458,15 +479,7 @@ export const toggleNoticeStarService = async (
     [noticeId, studentId]
   );
 
-  const keys =
-    await redisClient.keys(
-      `student-notices:${studentId}:*`
-    );
-
-  if (keys.length > 0) {
-
-    await redisClient.del(keys);
-  }
+  await invalidateStudentNoticeCache(studentId);
   return true;
 };
 
@@ -612,16 +625,12 @@ export const updateNoticeService = async (
 
     if (imageBuffer) {
 
-      // delete old image first
-
       if (image_public_id) {
 
         await deleteNoticeImage(
           image_public_id
         );
       }
-
-      // upload new image
 
       const uploaded =
         await uploadNoticeImage(
@@ -644,14 +653,32 @@ export const updateNoticeService = async (
         : notice.description;
 
     if (
-      !finalDescription
-      &&
-      !image_url
-    ) {
-
+      !finalDescription && !image_url ) {
       throw new Error(
         "Notice must contain description or image"
       );
+    }
+
+    // Batch Validation
+    if (input.target_batches?.length) {
+      const currentYear = new Date().getFullYear();
+      const isValid = input.target_batches.every(
+        (batch) => batch >= 2000 && batch <= currentYear + 4
+      );
+      if (!isValid) {
+        throw new Error("Invalid batch year");
+      }
+    }
+
+    // Student ID Validation
+    if (input.target_student_ids?.length) {
+      const result = await client.query(  // ← client use karo, appDB nahi
+        `SELECT id FROM students WHERE id = ANY($1)`,
+        [input.target_student_ids]
+      );
+      if (result.rows.length !== input.target_student_ids.length) {
+        throw new Error("One or more student IDs are invalid");
+      }
     }
 
     // ─── Update Notice ───────────────
@@ -694,23 +721,14 @@ export const updateNoticeService = async (
         `,
 
         [
-
           input.title ?? null,
-
           input.description ?? null,
-
           image_url,
-
           image_public_id,
-
           input.target_batches ?? null,
-
           input.target_branches ?? null,
-
           input.importance ?? null,
-
           input.expires_at ?? null,
-
           noticeId,
         ]
       );
@@ -718,14 +736,17 @@ export const updateNoticeService = async (
     const updated =
       updatedNotice.rows[0];
 
+    // ─── Check Update Success ────────
+
+    if (!updated) {
+      throw new Error(
+        "Notice update failed or not found"
+      );
+    }
+
     // ─── Sync Target Students ────────
 
-    if (
-      input.target_student_ids
-      !== undefined
-    ) {
-
-      // delete old targets
+    if (input.target_student_ids !== undefined) {
 
       await client.query(
 
@@ -738,18 +759,11 @@ export const updateNoticeService = async (
         [noticeId]
       );
 
-      // insert new targets
-
-      if (
-        input.target_student_ids.length
-      ) {
+      if (input.target_student_ids.length) {
 
         const values =
           input.target_student_ids
-            .map(
-              (_, i) =>
-                `($1, $${i + 2})`
-            )
+            .map((_, i) => `($1, $${i + 2})`)
             .join(",");
 
         await client.query(
@@ -767,10 +781,7 @@ export const updateNoticeService = async (
             ON CONFLICT DO NOTHING
           `,
 
-          [
-            noticeId,
-            ...input.target_student_ids
-          ]
+          [noticeId, ...input.target_student_ids]
         );
       }
     }
@@ -779,52 +790,24 @@ export const updateNoticeService = async (
 
     await client.query("COMMIT");
 
-    // ─── Clear Teacher Cache ─────────
+    // ─── Clear Cache ─────────────────
 
-    const teacherKeys =
-      await redisClient.keys(
-        `teacher-notices:${teacherId}:*`
-      );
-
-    if (teacherKeys.length > 0) {
-
-      await redisClient.del(
-        teacherKeys
-      );
-    }
-
-    //Clear Student Cache
-
-    const studentKeys =
-      await redisClient.keys(
-        `student-notices:*`
-      );
-
-    if (studentKeys.length > 0) {
-
-      await redisClient.del(
-        studentKeys
-      );
-    }
-    if (!updated) {
-      throw new Error("Notice update failed or not found");
-    }
+    await invalidateTeacherNoticeCache(teacherId);
+    await invalidateAllStudentNoticeCache();
 
     return updated;
 
   } catch (error) {
 
-    // Rollback 
+    // ─── Rollback ────────────────────
 
-    await client.query(
-      "ROLLBACK"
-    );
+    await client.query("ROLLBACK");
 
     throw error;
 
   } finally {
 
-    // Release Client 
+    // ─── Release Client ──────────────
 
     client.release();
   }
@@ -843,13 +826,11 @@ export const deleteNoticeService = async (
 
   try {
 
-    // ─── Start Transaction
+    // ─── Start Transaction ───────────
 
-    await client.query(
-      "BEGIN"
-    );
+    await client.query("BEGIN");
 
-    // ─── Find Notice──────
+    // ─── Find Notice ─────────────────
 
     const existingNotice =
       await client.query<Notice>(
@@ -876,7 +857,16 @@ export const deleteNoticeService = async (
       );
     }
 
-    // ─── Soft Delete──────
+    // ─── Delete Cloudinary Image ─────
+
+    if (notice.image_public_id) {
+
+      await deleteNoticeImage(
+        notice.image_public_id
+      );
+    }
+
+    // ─── Soft Delete ─────────────────
 
     await client.query(
 
@@ -893,58 +883,33 @@ export const deleteNoticeService = async (
       [noticeId]
     );
 
-    // ─── Commit ───
+    // ─── Commit Transaction ──────────
 
-    await client.query(
-      "COMMIT"
-    );
+    await client.query("COMMIT");
 
-    // ─── Clear Teacher Cache ─────────────────────────────────────────────────
+    // ─── Clear Cache ─────────────────
 
-    const teacherKeys =
-      await redisClient.keys(
-        `teacher-notices:${teacherId}:*`
-      );
-
-    if (teacherKeys.length > 0) {
-
-      await redisClient.del(
-        teacherKeys
-      );
-    }
-
-    // ─── Clear Student Cache ─────────────────────────────────────────────────
-
-    const studentKeys =
-      await redisClient.keys(
-        `student-notices:*`
-      );
-
-    if (studentKeys.length > 0) {
-
-      await redisClient.del(
-        studentKeys
-      );
-    }
+    await invalidateTeacherNoticeCache(teacherId);
+    await invalidateAllStudentNoticeCache();
 
   } catch (error) {
 
-    // ─── Rollback 
+    // ─── Rollback ────────────────────
 
-    await client.query(
-      "ROLLBACK"
-    );
+    await client.query("ROLLBACK");
 
     throw error;
 
   } finally {
+
+    // ─── Release Client
 
     client.release();
   }
 };
 
 
-// ─── Hide Notice For Student ─────────────────────────────────────────────────
+// ─── Hide Notice For Student
 
 export const hideNoticeForStudentService = async (
   noticeId: string,
@@ -982,13 +947,5 @@ export const hideNoticeForStudentService = async (
 
   // ─── Clear Cache 
 
-  const keys =
-    await redisClient.keys(
-      `student-notices:${studentId}:*`
-    );
-
-  if (keys.length > 0) {
-
-    await redisClient.del(keys);
-  }
+  await invalidateStudentNoticeCache(studentId);
 };

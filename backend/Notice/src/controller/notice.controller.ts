@@ -38,9 +38,25 @@ export const createNotice = async (
 
     const teacherId = teacher.id;
 
+    const input = {
+      title: req.body.title,
+      description: req.body.description,
+      importance: req.body.importance,
+      expires_at: req.body.expires_at,
+      target_batches: req.body.target_batches
+        ? JSON.parse(req.body.target_batches)
+        : [],
+      target_branches: req.body.target_branches
+        ? JSON.parse(req.body.target_branches)
+        : [],
+      target_student_ids: req.body.target_student_ids
+        ? JSON.parse(req.body.target_student_ids)
+        : [],
+    };
+
     const notice = await createNoticeService(
       teacherId,
-      req.body,
+      input,
       req.file?.buffer
     );
 
@@ -398,6 +414,7 @@ export const updateNotice = async (
     }
 
     // ─── Input ───────
+    // ─── Input ───────
     const input: UpdateNoticeInput = {
 
       title:
@@ -406,19 +423,19 @@ export const updateNotice = async (
       description:
         req.body.description,
 
-      target_batches:
+      target_batches:              // JSON.parse add kiya
         req.body.target_batches
-          ? req.body.target_batches
+          ? JSON.parse(req.body.target_batches)
           : undefined,
 
-      target_branches:
+      target_branches:             // JSON.parse add kiya
         req.body.target_branches
-          ? req.body.target_branches
+          ? JSON.parse(req.body.target_branches)
           : undefined,
 
-      target_student_ids:
+      target_student_ids:          // 
         req.body.target_student_ids
-          ? req.body.target_student_ids
+          ? JSON.parse(req.body.target_student_ids)
           : undefined,
 
       importance:

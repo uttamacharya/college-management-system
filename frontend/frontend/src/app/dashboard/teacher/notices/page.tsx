@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/Input";
 
 import {
   Notice,
-  CreateNoticeRequest,
 } from "@/types/notice.types";
 
 import {
@@ -27,9 +26,7 @@ import {
 
 export default function TeacherNoticesPage() {
 
-  // =====================================
   // STATES
-  // =====================================
 
   const [search, setSearch] =
     useState("");
@@ -43,9 +40,7 @@ export default function TeacherNoticesPage() {
   const [selectedNotice, setSelectedNotice] =
     useState<Notice | null>(null);
 
-  // =====================================
   // API HOOKS
-  // =====================================
 
   const {
     data,
@@ -67,9 +62,7 @@ export default function TeacherNoticesPage() {
   const deleteMutation =
     useDeleteNotice();
 
-  // =====================================
   // FILTER
-  // =====================================
 
   const filteredNotices =
     notices.filter((notice: Notice) => {
@@ -105,12 +98,10 @@ export default function TeacherNoticesPage() {
       }
     });
 
-  // =====================================
   // CREATE / UPDATE
-  // =====================================
 
 const handleCreateOrUpdate = (
-  data: CreateNoticeRequest
+  data: FormData
 ) => {
 
   // UPDATE
@@ -154,9 +145,7 @@ const handleCreateOrUpdate = (
   );
 };
 
-  // =====================================
   // EDIT
-  // =====================================
 
   const handleEdit = (
     notice: Notice
@@ -167,9 +156,7 @@ const handleCreateOrUpdate = (
     setModalOpen(true);
   };
 
-  // =====================================
   // DELETE
-  // =====================================
 
   const handleDelete = (
     id: string
@@ -187,9 +174,7 @@ const handleCreateOrUpdate = (
     deleteMutation.mutate(id);
   };
 
-  // =====================================
   // CLOSE MODAL
-  // =====================================
 
   const handleCloseModal = () => {
 
@@ -198,17 +183,15 @@ const handleCreateOrUpdate = (
     setEditingNotice(null);
   };
 
-  // =====================================
   // RENDER
-  // =====================================
 
   return (
 
     <div className="space-y-6">
 
-      {/* =====================================
+      {/* 
           HEADER
-      ===================================== */}
+    */}
 
       <div
         className="
@@ -262,9 +245,9 @@ const handleCreateOrUpdate = (
         </Button>
       </div>
 
-      {/* =====================================
+      {/* 
           SEARCH
-      ===================================== */}
+    */}
 
       <div className="w-full md:max-w-md">
 
@@ -283,9 +266,9 @@ const handleCreateOrUpdate = (
         />
       </div>
 
-      {/* =====================================
+      {/* 
           NOTICE GRID
-      ===================================== */}
+    */}
 
       <NoticeGrid
 
@@ -304,9 +287,9 @@ const handleCreateOrUpdate = (
         onDelete={handleDelete}
       />
 
-      {/* =====================================
+      {/*
           CREATE / EDIT MODAL
-      ===================================== */}
+    */}
 
       <NoticeFormModal
         open={modalOpen}
@@ -319,9 +302,9 @@ const handleCreateOrUpdate = (
         }
       />
 
-      {/* =====================================
+      {/* 
           PREVIEW MODAL
-      ===================================== */}
+    */}
 
       {selectedNotice && (
 

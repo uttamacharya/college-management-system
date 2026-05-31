@@ -53,8 +53,7 @@ export function LoginForm() {
   const verifyMutation =
     useVerifyId();
 
-  const loginMutation =
-    useLogin();
+  const loginMutation =useLogin();
 
   // VERIFY ID
 
@@ -153,10 +152,10 @@ export function LoginForm() {
 
       try {
 
-        console.log({
-          userId,
-          password,
-        });
+        // console.log({
+        //   userId,
+        //   password,
+        // });
 
         // CALL SET PASSWORD API HERE
 
